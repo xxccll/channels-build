@@ -1,0 +1,54 @@
+//获取当前操作系统
+def osName = System.properties.getProperty "os.name"
+
+def taskName   = "Release"
+def configPath = ""
+
+//noinspection GroovyAssignabilityCheck
+task buildChannels(dependsOn: ['assemble' + taskName]) {
+
+    //定位到当前主module目录
+    def root = projectDir.path
+
+    doFirst {
+        println osName
+        println root
+    }
+
+    doLast {
+        //获取对齐任务,获取apk文件路径
+        def arg0 = root + File.separator + "channel-build" + File.separator + "build.py"
+        def arg1 = tasks.getByName('zipalign' + taskName).outputs.files.asPath
+        def arg2 = configPath
+        //指定脚本参数并执行脚本
+        def command = ["python", arg0, arg1, arg2]
+
+        println "执行渠道包脚本:"
+        println command
+        println "..."
+
+        printProcessOutput(command.execute(), { line -> println line })
+    }
+}
+
+//打印执行脚本输出
+def printProcessOutput(process, onReadLine) {
+    try {
+        def stream = process.getInputStream()
+        def reader = new BufferedReader(new InputStreamReader(stream))
+        def line
+        while ((line = reader.readLine()) != null) {
+            onReadLine line
+        }
+        stream.close()
+        reader.close()
+    } finally {
+        process.destroy()
+    }
+}
+
+task printProject << {
+    println project.name
+    println projectDir.path
+    println rootDir.path
+}
